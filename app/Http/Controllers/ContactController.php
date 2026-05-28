@@ -60,7 +60,7 @@ class ContactController extends Controller
             'detail' => $validated['detail'],
         ]);
 
-        // 3. 💡 タグが選択されている場合、中間テーブル（contact_tag）に記録する
+        // 3.  タグが選択されている場合、中間テーブル（contact_tag）に記録する
         if ($request->has('tag_ids')) {
             $contact->tags()->attach($request->tag_ids);
         }
