@@ -69,12 +69,15 @@ class AdminController extends Controller
 
         return redirect()->route('admin.index')->with('success', 'お問い合わせデータを削除しました');
     }
+    /**
+     * PG05: お問い合わせ詳細画面の表示
+     */
     public function show($id)
     {
         // カテゴリとタグも含めてデータを1件取得
         $contact = Contact::with(['category', 'tags'])->findOrFail($id);
 
-        // 💡 テンプレートのJavaScriptの仕様に合わせて、JSON形式でデータを返します
-        return response()->json($contact);
+        // 💡 JSONではなく、用意されている専用のBladeファイルを表示させる
+        return view('admin.show', compact('contact'));
     }
 }
