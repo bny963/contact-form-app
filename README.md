@@ -1,4 +1,4 @@
-# COACHTECH お問い合わせフォーム 拡張開発プロジェクト
+# COACHTECH お問い合わせフォーム
 
 ## 概要
 本プロジェクトは、COACHTECHのカリキュラムとして開発された「お問い合わせフォーム」のバックエンド機能を実務レベルへと拡張したWebアプリケーションです。
@@ -21,67 +21,74 @@
 | **Web Server** | Nginx | 1.x |
 | **Infra / Dev** | Docker / Laravel Sail | Docker Desktop / WSL2 |
 | **Testing** | PHPUnit | Feature Test & Unit Test (23 Assertions) |
-| **VCS** | Git / GitHub | フィーチャーブランチ運用 / プルリクエスト管理 |
 
 ---
 
 ## 📊 データベース設計（ER図）
 
-### カーディナリティ（関連性）
-- **`categories` と `contacts`（1対多）**: 1つのカテゴリに複数のお問い合わせが紐づきます。
-- **`contacts` と `tags`（多対多）**: 中間テーブル `contact_tag` を介して、複数のお問い合わせに複数のタグを柔軟に設定できます（複合ユニーク制約により重複登録を防止）。
-- **`users`（管理者）**: 他のテーブルと直接の外部キー（FK）結合は持ちませんが、認証（Auth）を通過することで全データの閲覧・操作権限を持ちます。
+![ER図](https://github.com/user-attachments/assets/36e3717b-af60-4d61-b8f3-5e90aa0e40d0)
 
-```mermaid
-erDiagram
-    users {
-        bigint_unsigned id PK
-        varchar_255 name
-        varchar_255 email UK
-        timestamp email_verified_at "NULL"
-        varchar_255 password
-        varchar_100 remember_token "NULL"
-        timestamp created_at
-        timestamp updated_at
-    }
+---
 
-    categories {
-        bigint_unsigned id PK
-        varchar_255 content
-        timestamp created_at
-        timestamp updated_at
-    }
+## 🌐 APIエンドポイント一覧
 
-    tags {
-        bigint_unsigned id PK
-        varchar_50 name UK
-        timestamp created_at
-        timestamp updated_at
-    }
+すべてのAPIレスポンスはJSON形式で返却されます。
 
-    contacts {
-        bigint_unsigned id PK
-        bigint_unsigned category_id FK "ON DELETE CASCADE"
-        varchar_255 first_name
-        varchar_255 last_name
-        tinyint gender "1:男性, 2:女性, 3:その他"
-        varchar_255 email
-        varchar_11 tel "ハイフンなし"
-        varchar_255 address
-        varchar_255 building "NULL"
-        varchar_120 detail
-        timestamp created_at
-        timestamp updated_at
-    }
+| メソッド | パス | 機能概要 | 認証 |
+| :--- | :--- | :--- | :---: |
+| **GET** | `/api/contacts` | お問い合わせ一覧の取得（検索条件・ページネーション付） | なし |
+| **GET** | `/api/contacts/{id}` | 特定のお問い合わせ詳細データの取得 | なし |
+| **POST** | `/api/contacts` | 新規お問い合わせの登録（バリデーション検証あり） | なし |
+| **PUT/PATCH** | `/api/contacts/{id}` | 登録済みお問い合わせデータの更新 | なし |
+| **DELETE** | `/api/contacts/{id}` | お問い合わせデータの物理削除 | なし |
 
-    contact_tag {
-        bigint_unsigned id PK
-        bigint_unsigned contact_id FK "ON DELETE CASCADE"
-        bigint_unsigned tag_id FK "ON DELETE CASCADE"
-        timestamp created_at
-        timestamp updated_at
-    }
 
-    categories ||--o{ contacts : "1対多"
-    contacts ||--o{ contact_tag : "多対多"
-    tags ||--o{ contact_tag : "多対多"
+
+---
+
+## 🔗 開発環境URL
+アプリケーションのトップページ（お問い合わせ入力）: http://localhost
+
+管理者ログインページ: http://localhost/login
+
+管理画面ダッシュボード: http://localhost/admin
+
+---
+
+## 👤 作成者
+小林 瑠真 (Ruma Kobayashi)
+
+---
+
+## 🛠️ 環境構築・初期設定手順
+
+WSL2 / Docker環境がインストールされている前提での手順です。
+
+### 1. リポジトリのクローンと環境構築
+```bash
+# 1. リポジトリのクローンと移動
+git clone https://github.com/bny963/contact-form-app contact-form-app
+cd contact-form-app
+
+# 2. 環境設定ファイルの準備
+cp .env.example .env
+
+# 3. Composerパッケージのインストール（Docker経由）
+docker run --rm \
+    -u "$(id -u):$(id -g)" \
+    -v "$(pwd):/var/www/html" \
+    -w /var/www/html \
+    laravelsail/php82-composer:latest \
+    composer install --ignore-platform-reqs
+
+# 4. 開発環境（Dockerコンテナ）の起動
+./vendor/bin/sail up -d
+
+# 5. アプリケーションキーの生成
+sail artisan key:generate
+
+# 6. データベースのマイグレーションとシーディング
+sail artisan migrate:fresh --seed
+
+# 7. 自動テストの実行確認
+sail artisan test
