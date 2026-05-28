@@ -6,6 +6,7 @@ use App\Models\Contact;
 use App\Models\Category;
 use App\Models\Tag;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminController extends Controller
 {
@@ -79,5 +80,67 @@ class AdminController extends Controller
 
         // 💡 JSONではなく、用意されている専用のBladeファイルを表示させる
         return view('admin.show', compact('contact'));
+    }
+    /**
+     * 応用要件：検索条件を引き継いだCSVエクスポート機能
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        //  画面の一覧と同じ検索ロジックを適用してデータを取得
+        $query = Contact::with('category')->latest();
+
+        if ($request->filled('keyword')) {
+            $keyword = $request->keyword;
+            $query->where(function ($q) use ($keyword) {
+                $q->where('first_name', 'like', "%{$keyword}%")
+                    ->orWhere('last_name', 'like', "%{$keyword}%")
+                    ->orWhere('email', 'like', "%{$keyword}%");
+            });
+        }
+
+        if ($request->filled('gender') && $request->gender !== 'all') {
+            $query->where('gender', $request->gender);
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->filled('date')) {
+            $query->whereDate('created_at', $request->date);
+        }
+
+        $contacts = $query->get();
+
+        //  ストリームレスポンスでCSVを生成して即座にダウンロード
+        $response = new StreamedResponse(function () use ($contacts) {
+            $stream = fopen('php://output', 'w');
+
+            // Excelでの文字化けを防ぐBOMを出力
+            fwrite($stream, pack('C*', 0xEF, 0xBB, 0xBF));
+
+            // CSVヘッダー行
+            fputcsv($stream, ['ID', 'お名前', '性別', 'メールアドレス', 'ご意見・お問い合わせ内容']);
+
+            // データ行の書き込み
+            foreach ($contacts as $contact) {
+                $genderText = $contact->gender == 1 ? '男性' : ($contact->gender == 2 ? '女性' : 'その他');
+                fputcsv($stream, [
+                    $contact->id,
+                    $contact->first_name . ' ' . $contact->last_name,
+                    $genderText,
+                    $contact->email,
+                    $contact->detail,
+                ]);
+            }
+
+            fclose($stream);
+        });
+
+        // レスポンスヘッダーの設定（テストコードが検証しているContent-Typeを正確に指定）
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="contacts_' . date('YmdHis') . '.csv"');
+
+        return $response;
     }
 }
