@@ -27,4 +27,6 @@ Route::middleware(['auth'])->group(function () {
 
     // 詳細データをAjaxなどで取得するためのGETルート
     Route::get('/admin/contacts/{id}', [AdminController::class, 'show'])->name('admin.show');
+
+    Route::get('admin/export', [AdminController::class, 'export'])->name('admin.export');
 });
