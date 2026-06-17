@@ -26,7 +26,7 @@
 
 ## 📊 データベース設計（ER図）
 
-![ER図](https://github.com/user-attachments/assets/36e3717b-af60-4d61-b8f3-5e90aa0e40d0)
+![ER図](https://github.com/user-attachments/assets/81efd781-86eb-46e9-9e63-f78cca28689a)
 
 ---
 
